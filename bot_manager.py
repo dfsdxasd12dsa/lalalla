@@ -24,6 +24,10 @@ logging.basicConfig(
 )
 
 
+def is_conflict_marker(line: str) -> bool:
+    return line.startswith(("<<<<<<<", "=======", ">>>>>>>"))
+
+
 def read_non_empty_lines(path: Path) -> List[str]:
     if not path.exists():
         return []
@@ -31,8 +35,11 @@ def read_non_empty_lines(path: Path) -> List[str]:
     lines = []
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
-        if line and not line.startswith("#"):
-            lines.append(line)
+        if not line or line.startswith("#"):
+            continue
+        if is_conflict_marker(line):
+            continue
+        lines.append(line)
     return lines
 
 
@@ -40,7 +47,14 @@ def read_message() -> str:
     if not MESSAGE_PATH.exists():
         return "Привет! Напиши текст в message.txt"
 
-    text = MESSAGE_PATH.read_text(encoding="utf-8").strip()
+    clean_lines = []
+    for raw_line in MESSAGE_PATH.read_text(encoding="utf-8").splitlines():
+        line = raw_line.rstrip()
+        if is_conflict_marker(line.strip()):
+            continue
+        clean_lines.append(line)
+
+    text = "\n".join(clean_lines).strip()
     return text or "Привет! Файл message.txt пустой."
 
 
